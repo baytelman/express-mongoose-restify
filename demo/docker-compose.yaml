@@ -1,0 +1,23 @@
+
+version: '2'
+
+services:
+  mongodb-core:
+    image: mongo:3.4
+    environment:
+      - MONGO_LOG_DIR=/dev/null
+    command: mongod --smallfiles --logpath=/dev/null # --quiet
+
+  mongodb:
+    extends: mongodb-core
+    container_name: "e-m-r-mongodb"
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+      - MONGODB_USER=root
+      - MONGODB_PASS=pass
+    ports:
+      - 27020:27017
+    volumes:
+      - ./data/db:/data/db
