@@ -2,14 +2,14 @@ import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 
-const convertModelToRest = (model: Model<any>, obj: any) => {
-  const map: any = { id: obj.id };
-  const schema: any = model.schema;
-  Object.keys(schema.paths).forEach((key: string) => {
-    map[key] = obj[key];
-  });
-  return map;
-};
+const convertModelToRest = (model: Model<any>, obj: any) =>
+  Object.keys(model.schema.obj).reduce(
+    (map: any, key: string) => {
+      map[key] = obj[key];
+      return map;
+    },
+    { id: obj.id }
+  );
 
 export const listModel = (model: Model<any>) => async (req: Request, res: Response) => {
   const { filter, range, sort } = req.query;
@@ -19,7 +19,9 @@ export const listModel = (model: Model<any>) => async (req: Request, res: Respon
     const { q } = JSON.parse(filter);
     if (q) {
       /* Search for case-insensitive match on any field: */
-      conditions['$or'] = Object.keys(model.schema.obj).map(k => ({ [k]: new RegExp(q, 'i') }));
+      conditions['$or'] = Object.keys(model.schema.obj).map(k => ({
+        [k]: new RegExp(q, 'i')
+      }));
     }
   }
   let query = model.find(conditions);
@@ -35,15 +37,22 @@ export const listModel = (model: Model<any>) => async (req: Request, res: Respon
   res.header('Content-Range', `courses 0-${all.length - 1}/${count}`).json(all);
 };
 
-export const getModel = (model: Model<any>) => async (req: Request, res: Response) => {
+const matchCondition = (keyword: string, options?: MatchOptions) => {
+  const condition =
+    options && options.match ? { $or: options.match.map(field => ({ [field]: keyword })) } : { _id: keyword };
+  console.log({ condition });
+  return condition;
+};
+
+export const getModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
-  const obj = convertModelToRest(model, await model.findById(id));
+  const obj = convertModelToRest(model, await model.findOne(matchCondition(id, options)));
   res.json(obj);
 };
 
-export const deleteModel = (model: Model<any>) => async (req: Request, res: Response) => {
+export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
-  const obj = await model.findByIdAndDelete(id);
+  const obj = await model.findOneAndDelete(matchCondition(id, options));
   res.json(obj);
 };
 
@@ -54,14 +63,14 @@ export const postModel = (model: Model<any>) => async (req: Request, res: Respon
   res.json(convertModelToRest(model, instance));
 };
 
-export const putModel = (model: Model<any>) => async (req: Request, res: Response) => {
+export const putModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
   const {
     body: { id: _, ...body }
   } = req;
   try {
     const instance = await model.findOneAndUpdate(
-      { _id: id },
+      matchCondition(id, options),
       {
         $set: body
       },
@@ -74,17 +83,22 @@ export const putModel = (model: Model<any>) => async (req: Request, res: Respons
   }
 };
 
-export const restifyModel = (
-  router: Router,
-  model: Model<any>,
-  {
-    preprocesor,
-    methods
-  }: {
-    preprocesor?: RequestHandler;
-    methods?: { get?: boolean; list?: boolean; post?: boolean; put?: boolean; delete?: boolean };
-  }
-) => {
+interface MatchOptions {
+  match?: string[];
+}
+
+interface RestifyOptions extends MatchOptions {
+  preprocesor?: RequestHandler;
+  methods?: {
+    get?: boolean;
+    list?: boolean;
+    post?: boolean;
+    put?: boolean;
+    delete?: boolean;
+  };
+}
+
+export const restifyModel = (router: Router, model: Model<any>, { preprocesor, methods, match }: RestifyOptions) => {
   // List
   if (!methods || methods.list) {
     if (preprocesor) {
@@ -106,29 +120,29 @@ export const restifyModel = (
   // Fetch one
   if (!methods || methods.get) {
     if (preprocesor) {
-      router.route('/:id').get(preprocesor, getModel(model));
+      router.route('/:id').get(preprocesor, getModel(model, { match }));
     } else {
-      router.route('/:id').get(getModel(model));
+      router.route('/:id').get(getModel(model, { match }));
     }
   }
 
   // Update one
   if (!methods || methods.put) {
     if (preprocesor) {
-      router.route('/:id').put(preprocesor, putModel(model));
-      router.route('/:id').patch(preprocesor, putModel(model));
+      router.route('/:id').put(preprocesor, putModel(model, { match }));
+      router.route('/:id').patch(preprocesor, putModel(model, { match }));
     } else {
-      router.route('/:id').put(putModel(model));
-      router.route('/:id').patch(putModel(model));
+      router.route('/:id').put(putModel(model, { match }));
+      router.route('/:id').patch(putModel(model, { match }));
     }
   }
 
   // Delete one
   if (!methods || methods.delete) {
     if (preprocesor) {
-      router.route('/:id').delete(preprocesor, deleteModel(model));
+      router.route('/:id').delete(preprocesor, deleteModel(model, { match }));
     } else {
-      router.route('/:id').delete(deleteModel(model));
+      router.route('/:id').delete(deleteModel(model, { match }));
     }
   }
 };
