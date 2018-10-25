@@ -7,7 +7,7 @@ const removeReadOnlyProps = (model: any) => IGNORE_PROPS_EDIT.forEach(prop => de
 
 const convertModelToRest = (model: Model<any>, obj: any) => {
   const schema: any = model.schema;
-  return Object.keys(schema.paths).reduce(
+  return obj && Object.keys(schema.paths).reduce(
     (map: any, key: string) => {
       map[key] = obj[key];
       return map;
@@ -42,10 +42,16 @@ export const listModel = (model: Model<any>) => async (req: Request, res: Respon
   res.header('Content-Range', `courses 0-${all.length - 1}/${count}`).json(all);
 };
 
+const MONGO_ID_LENGTH = 24;
 const matchCondition = (keyword: string, options?: MatchOptions) => {
   const condition =
-    options && options.match ? { $or: options.match.map(field => ({ [field]: keyword })) } : { _id: keyword };
-  console.log({ condition });
+    options && options.match
+      ? {
+          $or: [...(keyword.length === MONGO_ID_LENGTH ? ['_id'] : []), ...options.match].map(field => ({
+            [field]: keyword
+          }))
+        }
+      : { _id: (keyword.length === MONGO_ID_LENGTH && keyword) || null };
   return condition;
 };
 
