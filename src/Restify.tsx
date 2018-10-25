@@ -2,14 +2,16 @@ import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 
-const convertModelToRest = (model: Model<any>, obj: any) =>
-  Object.keys(model.schema.obj).reduce(
+const convertModelToRest = (model: Model<any>, obj: any) => {
+  const schema: any = model.schema;
+  Object.keys(schema.paths).reduce(
     (map: any, key: string) => {
       map[key] = obj[key];
       return map;
     },
     { id: obj.id }
   );
+};
 
 export const listModel = (model: Model<any>) => async (req: Request, res: Response) => {
   const { filter, range, sort } = req.query;
