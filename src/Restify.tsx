@@ -4,10 +4,10 @@ import { Model } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 const removeReadOnlyProps = (obj: any) => IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
-const preprocess = (obj: any, preprocesor?: PreprocessorType) => {
+const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
   const propsWithoutReadOnly = removeReadOnlyProps(obj);
-  if (preprocesor) {
-    return preprocesor(propsWithoutReadOnly);
+  if (preprocessor) {
+    return preprocessor(propsWithoutReadOnly);
   }
   return propsWithoutReadOnly;
 };
