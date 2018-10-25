@@ -3,13 +3,13 @@ import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
-const removeReadOnlyProps = (obj: any) => IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
+
 const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
-  const propsWithoutReadOnly = removeReadOnlyProps(obj);
+  IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (preprocessor) {
-    return preprocessor(propsWithoutReadOnly);
+    return preprocessor(obj);
   }
-  return propsWithoutReadOnly;
+  return obj;
 };
 const convertModelToRest = (model: Model<any>, obj: any) => {
   const schema: any = model.schema;
@@ -80,8 +80,8 @@ export const postModel = (model: Model<any>, { preprocessor }: { preprocessor?: 
   req: Request,
   res: Response
 ) => {
-  const { body } = req;
-  preprocess(body, preprocessor);
+  let { body } = req;
+  body = preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
   res.json(convertModelToRest(model, instance));
@@ -92,10 +92,10 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
   res: Response
 ) => {
   const id = req.params.id;
-  const {
+  let {
     body: { id: _, ...body }
   } = req;
-  preprocess(body, options.preprocessor);
+  body = preprocess(body, options.preprocessor);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
