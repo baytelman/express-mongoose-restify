@@ -7,7 +7,7 @@ const removeReadOnlyProps = (model: any) => IGNORE_PROPS_EDIT.forEach(prop => de
 
 const convertModelToRest = (model: Model<any>, obj: any) => {
   const schema: any = model.schema;
-  Object.keys(schema.paths).reduce(
+  return Object.keys(schema.paths).reduce(
     (map: any, key: string) => {
       map[key] = obj[key];
       return map;
