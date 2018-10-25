@@ -2,6 +2,9 @@ import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 
+const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
+const removeReadOnlyProps = (model: any) => IGNORE_PROPS_EDIT.forEach(prop => delete model[prop]);
+
 const convertModelToRest = (model: Model<any>, obj: any) => {
   const schema: any = model.schema;
   Object.keys(schema.paths).reduce(
@@ -60,6 +63,7 @@ export const deleteModel = (model: Model<any>, options?: MatchOptions) => async 
 
 export const postModel = (model: Model<any>) => async (req: Request, res: Response) => {
   const { body } = req;
+  removeReadOnlyProps(body);
   const instance = new model(body);
   await instance.save();
   res.json(convertModelToRest(model, instance));
@@ -70,6 +74,7 @@ export const putModel = (model: Model<any>, options?: MatchOptions) => async (re
   const {
     body: { id: _, ...body }
   } = req;
+  removeReadOnlyProps(body);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
