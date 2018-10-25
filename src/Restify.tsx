@@ -3,16 +3,25 @@ import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
-const removeReadOnlyProps = (model: any) => IGNORE_PROPS_EDIT.forEach(prop => delete model[prop]);
-
+const removeReadOnlyProps = (obj: any) => IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
+const preprocess = (obj: any, preprocesor?: PreprocessorType) => {
+  const propsWithoutReadOnly = removeReadOnlyProps(obj);
+  if (preprocesor) {
+    return preprocesor(propsWithoutReadOnly);
+  }
+  return propsWithoutReadOnly;
+};
 const convertModelToRest = (model: Model<any>, obj: any) => {
   const schema: any = model.schema;
-  return obj && Object.keys(schema.paths).reduce(
-    (map: any, key: string) => {
-      map[key] = obj[key];
-      return map;
-    },
-    { id: obj.id }
+  return (
+    obj &&
+    Object.keys(schema.paths).reduce(
+      (map: any, key: string) => {
+        map[key] = obj[key];
+        return map;
+      },
+      { id: obj.id }
+    )
   );
 };
 
@@ -67,20 +76,26 @@ export const deleteModel = (model: Model<any>, options?: MatchOptions) => async 
   res.json(obj);
 };
 
-export const postModel = (model: Model<any>) => async (req: Request, res: Response) => {
+export const postModel = (model: Model<any>, { preprocessor }: { preprocessor?: PreprocessorType }) => async (
+  req: Request,
+  res: Response
+) => {
   const { body } = req;
-  removeReadOnlyProps(body);
+  preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
   res.json(convertModelToRest(model, instance));
 };
 
-export const putModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
+export const putModel = (model: Model<any>, { options }: { options?: MatchAndProcessorOptions }) => async (
+  req: Request,
+  res: Response
+) => {
   const id = req.params.id;
   const {
     body: { id: _, ...body }
   } = req;
-  removeReadOnlyProps(body);
+  preprocess(body, options.preprocessor);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
@@ -100,8 +115,15 @@ interface MatchOptions {
   match?: string[];
 }
 
+interface MatchAndProcessorOptions extends MatchOptions {
+  preprocessor?: PreprocessorType;
+}
+
+type PreprocessorType = (object: any) => any;
+
 interface RestifyOptions extends MatchOptions {
-  preprocesor?: RequestHandler;
+  requestHandler?: RequestHandler;
+  preprocessor?: PreprocessorType;
   methods?: {
     get?: boolean;
     list?: boolean;
@@ -111,11 +133,15 @@ interface RestifyOptions extends MatchOptions {
   };
 }
 
-export const restifyModel = (router: Router, model: Model<any>, { preprocesor, methods, match }: RestifyOptions) => {
+export const restifyModel = (
+  router: Router,
+  model: Model<any>,
+  { requestHandler, methods, match, preprocessor }: RestifyOptions
+) => {
   // List
   if (!methods || methods.list) {
-    if (preprocesor) {
-      router.route('/').get(preprocesor, listModel(model));
+    if (requestHandler) {
+      router.route('/').get(requestHandler, listModel(model));
     } else {
       router.route('/').get(listModel(model));
     }
@@ -123,17 +149,17 @@ export const restifyModel = (router: Router, model: Model<any>, { preprocesor, m
 
   // Create one
   if (!methods || methods.post) {
-    if (preprocesor) {
-      router.route('/').post(preprocesor, postModel(model));
+    if (requestHandler) {
+      router.route('/').post(requestHandler, postModel(model, { preprocessor }));
     } else {
-      router.route('/').post(postModel(model));
+      router.route('/').post(postModel(model, { preprocessor }));
     }
   }
 
   // Fetch one
   if (!methods || methods.get) {
-    if (preprocesor) {
-      router.route('/:id').get(preprocesor, getModel(model, { match }));
+    if (requestHandler) {
+      router.route('/:id').get(requestHandler, getModel(model, { match }));
     } else {
       router.route('/:id').get(getModel(model, { match }));
     }
@@ -141,19 +167,19 @@ export const restifyModel = (router: Router, model: Model<any>, { preprocesor, m
 
   // Update one
   if (!methods || methods.put) {
-    if (preprocesor) {
-      router.route('/:id').put(preprocesor, putModel(model, { match }));
-      router.route('/:id').patch(preprocesor, putModel(model, { match }));
+    if (requestHandler) {
+      router.route('/:id').put(requestHandler, putModel(model, { options: { match, preprocessor } }));
+      router.route('/:id').patch(requestHandler, putModel(model, { options: { match, preprocessor } }));
     } else {
-      router.route('/:id').put(putModel(model, { match }));
-      router.route('/:id').patch(putModel(model, { match }));
+      router.route('/:id').put(putModel(model, { options: { match, preprocessor } }));
+      router.route('/:id').patch(putModel(model, { options: { match, preprocessor } }));
     }
   }
 
   // Delete one
   if (!methods || methods.delete) {
-    if (preprocesor) {
-      router.route('/:id').delete(preprocesor, deleteModel(model, { match }));
+    if (requestHandler) {
+      router.route('/:id').delete(requestHandler, deleteModel(model, { match }));
     } else {
       router.route('/:id').delete(deleteModel(model, { match }));
     }

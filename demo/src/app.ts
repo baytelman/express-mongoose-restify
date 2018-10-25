@@ -48,13 +48,13 @@ export const users = {
   felipe: 'password1',
   bruno: 'password2'
 };
-export const authentication = basicAuth({
+export const requestHandler = basicAuth({
   users: { ...users },
   challenge: true
 });
 
 const router: Router = Router();
-restifyModel(router, Post, { preprocesor: authentication });
+restifyModel(router, Post, { requestHandler });
 app.use('/api/posts', router);
 /*** end of EXPRESS+MONGOOSE+RESTIFY ****/ 
 
