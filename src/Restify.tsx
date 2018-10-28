@@ -75,6 +75,7 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
           [(options && options.primaryKey) || '_id']:
             (((options && options.primaryKey) || keyword.length === MONGO_ID_LENGTH) && keyword) || null
         };
+  console.log({ condition });
   return condition;
 };
 
