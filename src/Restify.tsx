@@ -61,7 +61,11 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
     options && options.match
       ? {
           $or: [
-            ...(keyword.length === MONGO_ID_LENGTH ? [(options && options.primaryKey) || '_id'] : []),
+            ...(options && options.primaryKey
+              ? [options.primaryKey]
+              : keyword.length === MONGO_ID_LENGTH
+                ? ['_id']
+                : []),
             ...options.match
           ].map(field => ({
             [field]: keyword
