@@ -43,7 +43,9 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   let query = model.find(conditions);
   if (sort) {
     const [field, order] = JSON.parse(sort);
-    query = query.sort({ [options && options.primaryKey && field === 'id'? options.primaryKey : field]: order === 'ASC' ? 1 : -1 });
+    query = query.sort({
+      [options && options.primaryKey && field === 'id' ? options.primaryKey : field]: order === 'ASC' ? 1 : -1
+    });
   }
   if (range) {
     const [start, end] = JSON.parse(range);
