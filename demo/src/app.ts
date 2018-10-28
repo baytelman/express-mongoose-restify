@@ -13,19 +13,26 @@ mongoose.connect(
   { useNewUrlParser: true }
 );
 
+let TagSchema = new Schema({
+  name: String,
+  slug: { type: String, index: { unique: true } }
+});
+const Tag: Model<any> = model<any>('Tag', TagSchema);
+
 let UserSchema = new Schema({
   name: String,
   email: String
 });
+const User: Model<any> = model<any>('User', UserSchema);
 
 let PostSchema = new Schema({
   title: String,
-  tags: [String],
+  tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
   description: String,
-  author: UserSchema,
+  author: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   comments: [
     {
-      author: UserSchema,
+      author: { type: Schema.Types.ObjectId, ref: 'User' },
       comment: String
     }
   ]
@@ -43,7 +50,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* end of Setting up Express */
 
-/*** EXPRESS+MONGOOSE+RESTIFY ****/ 
+/*** EXPRESS+MONGOOSE+RESTIFY ****/
+
 export const users = {
   felipe: 'password1',
   bruno: 'password2'
@@ -53,10 +61,19 @@ export const requestHandler = basicAuth({
   challenge: true
 });
 
-const router: Router = Router();
-restifyModel(router, Post, { requestHandler });
-app.use('/api/posts', router);
-/*** end of EXPRESS+MONGOOSE+RESTIFY ****/ 
+const tagRouter: Router = Router();
+restifyModel(tagRouter, Tag, { primaryKey: 'slug', requestHandler });
+app.use('/api/tags', tagRouter);
+
+const userRouter: Router = Router();
+restifyModel(userRouter, User, { requestHandler });
+app.use('/api/users', userRouter);
+
+const postRouter: Router = Router();
+restifyModel(postRouter, Post, { requestHandler });
+app.use('/api/posts', postRouter);
+
+/*** end of EXPRESS+MONGOOSE+RESTIFY ****/
 
 const PORT: number = 5000;
 app.listen(PORT);
