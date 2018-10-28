@@ -43,7 +43,7 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   let query = model.find(conditions);
   if (sort) {
     const [field, order] = JSON.parse(sort);
-    query = query.sort({ [field]: order === 'ASC' ? 1 : -1 });
+    query = query.sort({ [options && options.primaryKey && field === 'id'? options.primaryKey : field]: order === 'ASC' ? 1 : -1 });
   }
   if (range) {
     const [start, end] = JSON.parse(range);
@@ -82,7 +82,7 @@ export const getModel = (model: Model<any>, options?: MatchOptions) => async (re
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
   const obj = await model.findOneAndDelete(matchCondition(id, options));
-  res.json(obj);
+  res.json(convertModelToRest(model, obj, options));
 };
 
 export const postModel = (
