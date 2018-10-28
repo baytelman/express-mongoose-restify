@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 
@@ -55,7 +55,6 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   res.header('Content-Range', `${model.name} 0-${all.length - 1}/${count}`).json(all);
 };
 
-const MONGO_ID_LENGTH = 24;
 const matchCondition = (keyword: string, options?: MatchOptions) => {
   const condition =
     options && options.match
@@ -63,7 +62,7 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
           $or: [
             ...(options && options.primaryKey
               ? [options.primaryKey]
-              : keyword.length === MONGO_ID_LENGTH
+              : Types.ObjectId.isValid(keyword)
                 ? ['_id']
                 : []),
             ...options.match
@@ -73,7 +72,7 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
         }
       : {
           [(options && options.primaryKey) || '_id']:
-            (((options && options.primaryKey) || keyword.length === MONGO_ID_LENGTH) && keyword) || null
+            (((options && options.primaryKey) || Types.ObjectId.isValid(keyword)) && keyword) || null
         };
   return condition;
 };
