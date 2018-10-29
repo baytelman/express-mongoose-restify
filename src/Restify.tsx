@@ -35,9 +35,38 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
     const { q } = JSON.parse(filter);
     if (q) {
       /* Search for case-insensitive match on any field: */
-      conditions['$or'] = Object.keys(model.schema.obj).map(k => ({
-        [k]: new RegExp(q, 'i')
-      }));
+      const schema: any = model.schema;
+      const combinedOr = Object.keys(schema.paths)
+        .filter(
+          k =>
+            schema.paths[k].instance === 'String' ||
+            schema.paths[k].instance === 'ObjectID' ||
+            schema.paths[k].instance === 'Number'
+        )
+        .map(k => {
+          switch (schema.paths[k].instance) {
+            case 'String':
+              return {
+                [k]: new RegExp(q, 'i')
+              };
+            case 'ObjectID':
+              return Types.ObjectId.isValid(q)
+                ? {
+                    [k]: q
+                  }
+                : null;
+            case 'Number':
+              return !isNaN(parseInt(q))
+                ? {
+                    [k]: parseInt(q)
+                  }
+                : null;
+          }
+        })
+        .filter(condition => !!condition);
+      if (combinedOr.length > 0) {
+        conditions['$or'] = combinedOr;
+      }
     }
   }
   let query = model.find(conditions);
@@ -60,11 +89,7 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
     options && options.match
       ? {
           $or: [
-            ...(options && options.primaryKey
-              ? [options.primaryKey]
-              : Types.ObjectId.isValid(keyword)
-                ? ['_id']
-                : []),
+            ...(options && options.primaryKey ? [options.primaryKey] : Types.ObjectId.isValid(keyword) ? ['_id'] : []),
             ...options.match
           ].map(field => ({
             [field]: keyword
