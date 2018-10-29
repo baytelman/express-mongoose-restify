@@ -81,7 +81,7 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
     query = query.skip(start).limit(end - start);
   }
   const all = (await query).map(c => convertModelToRest(model, c, options));
-  res.header('Content-Range', `${model.name} 0-${all.length - 1}/${count}`).json(all);
+  res.header('Content-Range', `${model.collection.name} 0-${all.length - 1}/${count}`).json(all);
 };
 
 const matchCondition = (keyword: string, options?: MatchOptions) => {
