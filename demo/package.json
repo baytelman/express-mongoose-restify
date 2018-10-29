@@ -4,7 +4,7 @@
   "description": "",
   "main": "build/dist/app.js",
   "scripts": {
-    "install-library": "cd .. && yarn build && cd - && yarn remove express-mongoose-restify && yarn add ../",
+    "install-library": "cd .. && yarn build && cd - && (yarn remove express-mongoose-restify ; yarn add ../)",
     "start": "tsc && concurrently --kill-others-on-fail \"tsc --watch\" \"nodemon\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
