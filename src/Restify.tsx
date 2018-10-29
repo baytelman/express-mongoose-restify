@@ -29,7 +29,6 @@ const convertModelToRest = (model: Model<any>, obj: any, options: PrimaryKeyOpti
 
 export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => async (req: Request, res: Response) => {
   const { filter, range, sort } = req.query;
-  const count = await model.count({});
   const conditions: any = {};
   if (filter) {
     const { q } = JSON.parse(filter);
@@ -69,6 +68,7 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
       }
     }
   }
+  const count = await model.count(conditions);
   let query = model.find(conditions);
   if (sort) {
     const [field, order] = JSON.parse(sort);
