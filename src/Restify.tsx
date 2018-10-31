@@ -67,6 +67,20 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
       if (combinedOr.length > 0) {
         conditions['$or'] = combinedOr;
       }
+    } else {
+      const combinedAnd = Object.keys(search).map(key => {
+        const isId = key === 'id';
+        const needle = search[key];
+        if (Array.isArray(needle)) {
+          return {
+            [isId ? '_id' : key]: { $in: needle.map(n => (isId ? Types.ObjectId(n) : n)) }
+          };
+        }
+        return { [isId ? '_id' : key]: isId ? Types.ObjectId(needle) : needle };
+      });
+      if (combinedAnd.length > 0) {
+        conditions['$and'] = combinedAnd;
+      }
     }
   }
   const count = await model.count(conditions);
