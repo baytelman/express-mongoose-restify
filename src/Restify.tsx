@@ -31,7 +31,8 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   const { filter, range, sort } = req.query;
   const conditions: any = {};
   if (filter) {
-    const { q } = JSON.parse(filter);
+    const search = JSON.parse(filter);
+    const { q } = search;
     if (q) {
       /* Search for case-insensitive match on any field: */
       const schema: any = model.schema;
