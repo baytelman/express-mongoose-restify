@@ -6,7 +6,8 @@
   "scripts": {
     "install-library": "cd .. && yarn build && cd - && (yarn remove express-mongoose-restify ; yarn add ../)",
     "start": "tsc && concurrently --kill-others-on-fail \"tsc --watch\" \"nodemon\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db": "docker-compose up -d mongodb"
   },
   "author": "",
   "license": "ISC",
