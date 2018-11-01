@@ -11,18 +11,18 @@ const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
   }
   return obj;
 };
-const convertModelToRest = (model: Model<any>, obj: any, options: PrimaryKeyOptions) => {
+const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOptions) => {
   const schema: any = model.schema;
   return (
     obj &&
     Object.keys(schema.paths).reduce(
       (map: any, key: string) => {
-        if (key !== options.primaryKey) {
+        if (!options || key !== options.primaryKey) {
           map[key] = obj[key];
         }
         return map;
       },
-      { id: obj[options.primaryKey || 'id'] }
+      { id: obj[(options && options.primaryKey) || 'id'] }
     )
   );
 };
@@ -31,7 +31,8 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   const { filter, range, sort } = req.query;
   const conditions: any = {};
   if (filter) {
-    const { q } = JSON.parse(filter);
+    const search = JSON.parse(filter);
+    const { q } = search;
     if (q) {
       /* Search for case-insensitive match on any field: */
       const schema: any = model.schema;
@@ -61,10 +62,25 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
                   }
                 : null;
           }
+          return null;
         })
         .filter(condition => !!condition);
       if (combinedOr.length > 0) {
         conditions['$or'] = combinedOr;
+      }
+    } else {
+      const combinedAnd = Object.keys(search).map(key => {
+        const isId = key === 'id';
+        const needle = search[key];
+        if (Array.isArray(needle)) {
+          return {
+            [isId ? '_id' : key]: { $in: needle.map(n => (isId ? Types.ObjectId(n) : n)) }
+          };
+        }
+        return { [isId ? '_id' : key]: isId ? Types.ObjectId(needle) : needle };
+      });
+      if (combinedAnd.length > 0) {
+        conditions['$and'] = combinedAnd;
       }
     }
   }
@@ -133,7 +149,7 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
   let {
     body: { id: _, ...body }
   } = req;
-  body = preprocess(body, options.preprocessor);
+  body = preprocess(body, options && options.preprocessor);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
