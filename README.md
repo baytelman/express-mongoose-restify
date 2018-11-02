@@ -1,6 +1,6 @@
 # express-mongoose-restify
 
-One-line restify endpoints, compatible with https://marmelab.com/react-admin and https://github.com/baytelman/react-admin-auto
+One-line restify MongoDB models, compatible with https://marmelab.com/react-admin and https://github.com/baytelman/react-admin-auto
 
 ## Why
 
