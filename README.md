@@ -62,10 +62,14 @@ DELETE http://localhost:3000/api/posts/:id
 
 **Demo:**
 ```js
+const postRouter: Router = Router();
+/* Load your router: */
 restifyModel(postRouter, Post, {
     primaryKey: 'md5', /* Will use DB field 'md5' as 'id' in generated JSONs */  
     match: ['slug', 'sha'], /* Will allow id (internally md5), slug or sha as identifier (`GET /api/posts/:id|:slug|:sha`) */
     preprocessor: basicAuth({users: { /* */ }, challenge: true), /* Protects with basicAuth */
     methods: {list: true, get: true, put: true, post: true}, /* Limits allowed methods, in this case no DEL */
 });
+/* Add your router to your app */
+app.use('/api/posts', postRouter);
 ```
