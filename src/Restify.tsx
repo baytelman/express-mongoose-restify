@@ -11,7 +11,7 @@ const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
   }
   return obj;
 };
-const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOptions) => {
+const convertModelToRest = (model: Model<any>, obj: any, options?: ModelOptions) => {
   const schema: any = model.schema;
   return (
     obj &&
@@ -27,7 +27,7 @@ const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOpt
   );
 };
 
-export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => async (req: Request, res: Response) => {
+export const listModel = (model: Model<any>, options?: ModelOptions) => async (req: Request, res: Response) => {
   const { filter, range, sort } = req.query;
   const conditions: any = {};
   if (filter) {
@@ -86,6 +86,9 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
   }
   const count = await model.count(conditions);
   let query = model.find(conditions);
+  if (options.populate) {
+    query = query.populate(options.populate);
+  }
   if (sort) {
     const [field, order] = JSON.parse(sort);
     query = query.sort({
@@ -120,7 +123,11 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
 
 export const getModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
-  const obj = convertModelToRest(model, await model.findOne(matchCondition(id, options)), options);
+  let query = model.findOne(matchCondition(id, options));
+  if (options.populate) {
+    query = query.populate(options.populate);
+  }
+  const obj = convertModelToRest(model, await query, options);
   res.json(obj);
 };
 
@@ -165,11 +172,12 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
   }
 };
 
-interface PrimaryKeyOptions {
+interface ModelOptions {
   primaryKey?: string;
+  populate?: any;
 }
 
-interface MatchOptions extends PrimaryKeyOptions {
+interface MatchOptions extends ModelOptions {
   match?: string[];
 }
 

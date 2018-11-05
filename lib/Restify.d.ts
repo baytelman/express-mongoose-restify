@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
-export declare const listModel: (model: Model<any>, options?: PrimaryKeyOptions) => (req: Request, res: Response) => Promise<void>;
+export declare const listModel: (model: Model<any>, options?: ModelOptions) => (req: Request, res: Response) => Promise<void>;
 export declare const getModel: (model: Model<any>, options?: MatchOptions) => (req: Request, res: Response) => Promise<void>;
 export declare const deleteModel: (model: Model<any>, options?: MatchOptions) => (req: Request, res: Response) => Promise<void>;
 export declare const postModel: (model: Model<any>, { primaryKey, preprocessor }: {
@@ -11,10 +11,11 @@ export declare const postModel: (model: Model<any>, { primaryKey, preprocessor }
 export declare const putModel: (model: Model<any>, { options }: {
     options?: MatchAndProcessorOptions;
 }) => (req: Request, res: Response) => Promise<void>;
-interface PrimaryKeyOptions {
+interface ModelOptions {
     primaryKey?: string;
+    populate?: any;
 }
-interface MatchOptions extends PrimaryKeyOptions {
+interface MatchOptions extends ModelOptions {
     match?: string[];
 }
 interface MatchAndProcessorOptions extends MatchOptions {
