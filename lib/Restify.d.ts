@@ -34,5 +34,5 @@ interface RestifyOptions extends MatchOptions {
         delete?: boolean;
     };
 }
-export declare const restifyModel: (router: Router, model: Model<any>, { primaryKey, requestHandler, methods, match, preprocessor }: RestifyOptions) => void;
+export declare const restifyModel: (router: Router, model: Model<any>, { primaryKey, populate, requestHandler, methods, match, preprocessor }: RestifyOptions) => void;
 export {};

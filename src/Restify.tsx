@@ -203,14 +203,14 @@ interface RestifyOptions extends MatchOptions {
 export const restifyModel = (
   router: Router,
   model: Model<any>,
-  { primaryKey, requestHandler, methods, match, preprocessor }: RestifyOptions
+  { primaryKey, populate, requestHandler, methods, match, preprocessor }: RestifyOptions
 ) => {
   // List
   if (!methods || methods.list) {
     if (requestHandler) {
-      router.route('/').get(requestHandler, listModel(model, { primaryKey }));
+      router.route('/').get(requestHandler, listModel(model, { primaryKey, populate }));
     } else {
-      router.route('/').get(listModel(model, { primaryKey }));
+      router.route('/').get(listModel(model, { primaryKey, populate }));
     }
   }
 
@@ -226,9 +226,9 @@ export const restifyModel = (
   // Fetch one
   if (!methods || methods.get) {
     if (requestHandler) {
-      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, match }));
+      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, populate, match }));
     } else {
-      router.route('/:id').get(getModel(model, { primaryKey, match }));
+      router.route('/:id').get(getModel(model, { primaryKey, populate, match }));
     }
   }
 
