@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 export declare const listModel: (model: Model<any>, options?: PrimaryKeyOptions) => (req: Request, res: Response) => Promise<void>;
-export declare const getModel: (model: Model<any>, options?: MatchOptions) => (req: Request, res: Response) => Promise<void>;
+export declare const getModel: (model: Model<any>, options?: MatchOptions, postprocessor?: PostprocessorType) => (req: Request, res: Response) => Promise<void>;
 export declare const deleteModel: (model: Model<any>, options?: MatchOptions) => (req: Request, res: Response) => Promise<void>;
 export declare const postModel: (model: Model<any>, { primaryKey, preprocessor }: {
     primaryKey?: string;
@@ -21,10 +21,12 @@ interface MatchAndProcessorOptions extends MatchOptions {
     preprocessor?: PreprocessorType;
 }
 declare type PreprocessorType = (object: any) => any;
+declare type PostprocessorType = (object: any) => any;
 interface RestifyOptions extends MatchOptions {
     primaryKey?: string;
     requestHandler?: RequestHandler;
     preprocessor?: PreprocessorType;
+    postprocessor?: PostprocessorType;
     methods?: {
         get?: boolean;
         list?: boolean;
@@ -33,5 +35,5 @@ interface RestifyOptions extends MatchOptions {
         delete?: boolean;
     };
 }
-export declare const restifyModel: (router: Router, model: Model<any>, { primaryKey, requestHandler, methods, match, preprocessor }: RestifyOptions) => void;
+export declare const restifyModel: (router: Router, model: Model<any>, { primaryKey, requestHandler, methods, match, preprocessor, postprocessor }: RestifyOptions) => void;
 export {};

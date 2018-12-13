@@ -11,6 +11,13 @@ const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
   }
   return obj;
 };
+const postprocess = (obj: any, postprocessor?: PostprocessorType) => {
+  IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
+  if (postprocessor) {
+    return postprocessor(obj);
+  }
+  return obj;
+};
 const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOptions) => {
   const schema: any = model.schema;
   return (
@@ -118,10 +125,13 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
   return condition;
 };
 
-export const getModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
+export const getModel = (model: Model<any>, options?: MatchOptions, postprocessor?: PostprocessorType) => async (
+  req: Request,
+  res: Response
+) => {
   const id = req.params.id;
   const obj = convertModelToRest(model, await model.findOne(matchCondition(id, options)), options);
-  res.json(obj);
+  res.json(postprocess(obj, postprocessor));
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
@@ -178,11 +188,13 @@ interface MatchAndProcessorOptions extends MatchOptions {
 }
 
 type PreprocessorType = (object: any) => any;
+type PostprocessorType = (object: any) => any;
 
 interface RestifyOptions extends MatchOptions {
   primaryKey?: string;
   requestHandler?: RequestHandler;
   preprocessor?: PreprocessorType;
+  postprocessor?: PostprocessorType;
   methods?: {
     get?: boolean;
     list?: boolean;
@@ -195,7 +207,7 @@ interface RestifyOptions extends MatchOptions {
 export const restifyModel = (
   router: Router,
   model: Model<any>,
-  { primaryKey, requestHandler, methods, match, preprocessor }: RestifyOptions
+  { primaryKey, requestHandler, methods, match, preprocessor, postprocessor }: RestifyOptions
 ) => {
   // List
   if (!methods || methods.list) {
@@ -218,9 +230,9 @@ export const restifyModel = (
   // Fetch one
   if (!methods || methods.get) {
     if (requestHandler) {
-      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, match }));
+      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, match }, postprocessor));
     } else {
-      router.route('/:id').get(getModel(model, { primaryKey, match }));
+      router.route('/:id').get(getModel(model, { primaryKey, match }, postprocessor));
     }
   }
 
