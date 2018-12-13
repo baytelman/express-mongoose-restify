@@ -4,17 +4,17 @@ import { Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 
-const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
+const preprocess = async (obj: any, preprocessor?: PreprocessorType) => {
   IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (preprocessor) {
-    return preprocessor(obj);
+    return await preprocessor(obj);
   }
   return obj;
 };
-const postprocess = (obj: any, postprocessor?: PostprocessorType) => {
+const postprocess = async (obj: any, postprocessor?: PostprocessorType) => {
   IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (postprocessor) {
-    return postprocessor(obj);
+    return await postprocessor(obj);
   }
   return obj;
 };
@@ -131,7 +131,7 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
 ) => {
   const id = req.params.id;
   const obj = await model.findOne(matchCondition(id, options));
-  res.json(convertModelToRest(model, postprocess(obj, postprocessor), options));
+  res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
@@ -145,7 +145,7 @@ export const postModel = (
   { primaryKey, preprocessor }: { primaryKey?: string; preprocessor?: PreprocessorType }
 ) => async (req: Request, res: Response) => {
   let { body } = req;
-  body = preprocess(body, preprocessor);
+  body = await preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
   res.json(convertModelToRest(model, instance, { primaryKey }));
@@ -159,7 +159,7 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
   let {
     body: { id: _, ...body }
   } = req;
-  body = preprocess(body, options && options.preprocessor);
+  body = await preprocess(body, options && options.preprocessor);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
