@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
-export declare const listModel: (model: Model<any>, options?: PrimaryKeyOptions) => (req: Request, res: Response) => Promise<void>;
+export declare const listModel: (model: Model<any>, options?: PrimaryKeyOptions, postprocessor?: PostprocessorType) => (req: Request, res: Response) => Promise<void>;
 export declare const getModel: (model: Model<any>, options?: MatchOptions, postprocessor?: PostprocessorType) => (req: Request, res: Response) => Promise<void>;
 export declare const deleteModel: (model: Model<any>, options?: MatchOptions) => (req: Request, res: Response) => Promise<void>;
 export declare const postModel: (model: Model<any>, { primaryKey, preprocessor }: {

@@ -34,7 +34,10 @@ const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOpt
   );
 };
 
-export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => async (req: Request, res: Response) => {
+export const listModel = (model: Model<any>, options?: PrimaryKeyOptions, postprocessor?: PostprocessorType) => async (
+  req: Request,
+  res: Response
+) => {
   const { filter, range, sort } = req.query;
   const conditions: any = {};
   if (filter) {
@@ -103,7 +106,9 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions) => asy
     const [start, end] = JSON.parse(range);
     query = query.skip(start).limit(end - start);
   }
-  const all = (await query).map(c => convertModelToRest(model, c, options));
+  const all = await Promise.all(
+    (await query).map(async c => convertModelToRest(model, await postprocess(c, postprocessor), options))
+  );
   res.header('Content-Range', `${model.collection.name} 0-${all.length - 1}/${count}`).json(all);
 };
 
@@ -130,8 +135,8 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   res: Response
 ) => {
   const id = req.params.id;
-  const obj = await model.findOne(matchCondition(id, options));
-  res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
+  const obj = convertModelToRest(model, await model.findOne(matchCondition(id, options)), options);
+  res.json(await postprocess(obj, postprocessor));
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
@@ -212,9 +217,9 @@ export const restifyModel = (
   // List
   if (!methods || methods.list) {
     if (requestHandler) {
-      router.route('/').get(requestHandler, listModel(model, { primaryKey }));
+      router.route('/').get(requestHandler, listModel(model, { primaryKey }, postprocessor));
     } else {
-      router.route('/').get(listModel(model, { primaryKey }));
+      router.route('/').get(listModel(model, { primaryKey }, postprocessor));
     }
   }
 
