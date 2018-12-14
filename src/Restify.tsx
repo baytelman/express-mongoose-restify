@@ -135,7 +135,7 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   res: Response
 ) => {
   const id = req.params.id;
-  const obj = await model.findOne(matchCondition(id, options)).lean();
+  const obj = await model.findOne(matchCondition(id, options));
   res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
 };
 
