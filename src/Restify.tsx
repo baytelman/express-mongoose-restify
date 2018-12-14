@@ -135,8 +135,8 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   res: Response
 ) => {
   const id = req.params.id;
-  const obj = convertModelToRest(model, await model.findOne(matchCondition(id, options)), options);
-  res.json(await postprocess(obj, postprocessor));
+  const obj = await model.findOne(matchCondition(id, options)).lean();
+  res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
