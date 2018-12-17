@@ -134,9 +134,14 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   req: Request,
   res: Response
 ) => {
-  const id = req.params.id;
-  const obj = await model.findOne(matchCondition(id, options));
-  res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
+  try {
+    const id = req.params.id;
+    const obj = await model.findOne(matchCondition(id, options));
+    res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Could not read model' });
+  }
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
