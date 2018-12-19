@@ -192,8 +192,8 @@ interface MatchAndProcessorOptions extends MatchOptions {
   preprocessor?: PreprocessorType;
 }
 
-type PreprocessorType = (object: any) => any;
-type PostprocessorType = (object: any) => any;
+type PreprocessorType = (object: any) => Promise<any>;
+type PostprocessorType = (object: any) => Promise<any>;
 
 interface RestifyOptions extends MatchOptions {
   primaryKey?: string;
