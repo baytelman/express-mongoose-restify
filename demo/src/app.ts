@@ -75,7 +75,7 @@ restifyModel(userRouter, User, { requestHandler });
 app.use('/api/users', userRouter);
 
 const postRouter: Router = Router();
-restifyModel(postRouter, Post, { requestHandler });
+restifyModel(postRouter, Post, { requestHandler, populate: {path: 'tags'} });
 app.use('/api/posts', postRouter);
 
 /*** end of EXPRESS+MONGOOSE+RESTIFY ****/
