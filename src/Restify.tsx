@@ -4,10 +4,17 @@ import { Document, Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 
-const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
+const preprocess = async (obj: any, preprocessor?: PreprocessorType) => {
   IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (preprocessor) {
-    return preprocessor(obj);
+    return await preprocessor(obj);
+  }
+  return obj;
+};
+const postprocess = async (obj: any, postprocessor?: PostprocessorType) => {
+  IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
+  if (postprocessor) {
+    return await postprocessor(obj);
   }
   return obj;
 };
@@ -25,7 +32,10 @@ const convertModelToRest = (model: Model<any>, instance: Document, options?: Mod
   return object;
 };
 
-export const listModel = (model: Model<any>, options?: ModelOptions) => async (req: Request, res: Response) => {
+export const listModel = (model: Model<any>, options?: ModelOptions, postprocessor?: PostprocessorType) => async (
+  req: Request,
+  res: Response
+) => {
   const { filter, range, sort } = req.query;
   const conditions: any = {};
   if (filter) {
@@ -97,7 +107,9 @@ export const listModel = (model: Model<any>, options?: ModelOptions) => async (r
     const [start, end] = JSON.parse(range);
     query = query.skip(start).limit(end - start);
   }
-  const all = (await query).map(c => convertModelToRest(model, c, options));
+  const all = await Promise.all(
+    (await query).map(async c => convertModelToRest(model, await postprocess(c, postprocessor), options))
+  );
   res.header('Content-Range', `${model.collection.name} 0-${all.length - 1}/${count}`).json(all);
 };
 
@@ -119,13 +131,16 @@ const matchCondition = (keyword: string, options?: MatchOptions) => {
   return condition;
 };
 
-export const getModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
+export const getModel = (model: Model<any>, options?: MatchOptions, postprocessor?: PostprocessorType) => async (
+  req: Request,
+  res: Response
+) => {
   const id = req.params.id;
   let query = model.findOne(matchCondition(id, options));
   if (options.populate) {
     query = query.populate(options.populate);
   }
-  const obj = convertModelToRest(model, await query, options);
+  const obj = convertModelToRest(model, await postprocess(await query), options);
   res.json(obj);
 };
 
@@ -140,7 +155,7 @@ export const postModel = (
   { primaryKey, preprocessor }: { primaryKey?: string; preprocessor?: PreprocessorType }
 ) => async (req: Request, res: Response) => {
   let { body } = req;
-  body = preprocess(body, preprocessor);
+  body = await preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
   res.json(convertModelToRest(model, instance, { primaryKey }));
@@ -154,7 +169,7 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
   let {
     body: { id: _, ...body }
   } = req;
-  body = preprocess(body, options && options.preprocessor);
+  body = await preprocess(body, options && options.preprocessor);
   try {
     const instance = await model.findOneAndUpdate(
       matchCondition(id, options),
@@ -183,12 +198,14 @@ interface MatchAndProcessorOptions extends MatchOptions {
   preprocessor?: PreprocessorType;
 }
 
-type PreprocessorType = (object: any) => any;
+type PreprocessorType = (object: any) => Promise<any>;
+type PostprocessorType = (object: any) => Promise<any>;
 
 interface RestifyOptions extends MatchOptions {
   primaryKey?: string;
   requestHandler?: RequestHandler;
   preprocessor?: PreprocessorType;
+  postprocessor?: PostprocessorType;
   methods?: {
     get?: boolean;
     list?: boolean;
@@ -201,14 +218,14 @@ interface RestifyOptions extends MatchOptions {
 export const restifyModel = (
   router: Router,
   model: Model<any>,
-  { primaryKey, populate, requestHandler, methods, match, preprocessor }: RestifyOptions
+  { primaryKey, populate, requestHandler, methods, match, preprocessor, postprocessor }: RestifyOptions
 ) => {
   // List
   if (!methods || methods.list) {
     if (requestHandler) {
-      router.route('/').get(requestHandler, listModel(model, { primaryKey, populate }));
+      router.route('/').get(requestHandler, listModel(model, { primaryKey, populate }, postprocessor));
     } else {
-      router.route('/').get(listModel(model, { primaryKey, populate }));
+      router.route('/').get(listModel(model, { primaryKey, populate }, postprocessor));
     }
   }
 
@@ -224,9 +241,9 @@ export const restifyModel = (
   // Fetch one
   if (!methods || methods.get) {
     if (requestHandler) {
-      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, populate, match }));
+      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, populate, match }, postprocessor));
     } else {
-      router.route('/:id').get(getModel(model, { primaryKey, populate, match }));
+      router.route('/:id').get(getModel(model, { primaryKey, populate, match }, postprocessor));
     }
   }
 
