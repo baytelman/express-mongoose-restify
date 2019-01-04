@@ -29,6 +29,11 @@ let PostSchema = new Schema({
   title: String,
   tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
   description: String,
+  legal: {
+    year: { type:Number, default: 2019}, 
+    copyright: {type:String, default: '© 2019'}, 
+    license: {type:String, default: 'Do not duplicate'}
+  },
   author: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   comments: [
     {

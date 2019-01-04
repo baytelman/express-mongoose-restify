@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
-import { Model, Types } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 
@@ -11,20 +11,18 @@ const preprocess = (obj: any, preprocessor?: PreprocessorType) => {
   }
   return obj;
 };
-const convertModelToRest = (model: Model<any>, obj: any, options?: ModelOptions) => {
-  const schema: any = model.schema;
-  return (
-    obj &&
-    Object.keys(schema.paths).reduce(
-      (map: any, key: string) => {
-        if (!options || key !== options.primaryKey) {
-          map[key] = obj[key];
-        }
-        return map;
-      },
-      { id: obj[(options && options.primaryKey) || 'id'] }
-    )
-  );
+
+const convertModelToRest = (model: Model<any>, instance: Document, options?: ModelOptions) => {
+  const object = instance.toObject();
+  if (options && options.primaryKey) {
+      object.id = object[options.primaryKey];
+      object[options.primaryKey] = undefined;
+  } else {
+      object.id = object._id;
+  }
+  object._id = undefined;
+  object.__v = undefined;
+  return object;
 };
 
 export const listModel = (model: Model<any>, options?: ModelOptions) => async (req: Request, res: Response) => {
