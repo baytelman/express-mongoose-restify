@@ -29,6 +29,11 @@ let PostSchema = new Schema({
   title: String,
   tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
   description: String,
+  legal: {
+    year: { type:Number, default: 2019}, 
+    copyright: {type:String, default: '© 2019'}, 
+    license: {type:String, default: 'Do not duplicate'}
+  },
   author: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   comments: [
     {
@@ -70,7 +75,7 @@ restifyModel(userRouter, User, { requestHandler });
 app.use('/api/users', userRouter);
 
 const postRouter: Router = Router();
-restifyModel(postRouter, Post, { requestHandler });
+restifyModel(postRouter, Post, { requestHandler, populate: {path: 'tags'} });
 app.use('/api/posts', postRouter);
 
 /*** end of EXPRESS+MONGOOSE+RESTIFY ****/

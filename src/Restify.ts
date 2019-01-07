@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { RequestHandler } from 'express-serve-static-core';
-import { Model, Types } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
 
@@ -12,29 +12,26 @@ const preprocess = async (obj: any, preprocessor?: PreprocessorType) => {
   return obj;
 };
 const postprocess = async (obj: any, postprocessor?: PostprocessorType) => {
-  IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (postprocessor) {
     return await postprocessor(obj);
   }
   return obj;
 };
-const convertModelToRest = (model: Model<any>, obj: any, options?: PrimaryKeyOptions) => {
-  const schema: any = model.schema;
-  return (
-    obj &&
-    Object.keys(schema.paths).reduce(
-      (map: any, key: string) => {
-        if (!options || key !== options.primaryKey) {
-          map[key] = obj[key];
-        }
-        return map;
-      },
-      { id: obj[(options && options.primaryKey) || 'id'] }
-    )
-  );
+
+const convertModelToRest = (instance: Document, options?: ModelOptions) => {
+  const object = instance.toObject ? instance.toObject() : instance;
+  if (options && options.primaryKey) {
+    object.id = object[options.primaryKey];
+    object[options.primaryKey] = undefined;
+  } else {
+    object.id = object._id;
+  }
+  object._id = undefined;
+  object.__v = undefined;
+  return object;
 };
 
-export const listModel = (model: Model<any>, options?: PrimaryKeyOptions, postprocessor?: PostprocessorType) => async (
+export const listModel = (model: Model<any>, options?: ModelOptions, postprocessor?: PostprocessorType) => async (
   req: Request,
   res: Response
 ) => {
@@ -96,6 +93,9 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions, postpr
   }
   const count = await model.count(conditions);
   let query = model.find(conditions);
+  if (options.populate) {
+    query = query.populate(options.populate);
+  }
   if (sort) {
     const [field, order] = JSON.parse(sort);
     query = query.sort({
@@ -107,7 +107,7 @@ export const listModel = (model: Model<any>, options?: PrimaryKeyOptions, postpr
     query = query.skip(start).limit(end - start);
   }
   const all = await Promise.all(
-    (await query).map(async c => convertModelToRest(model, await postprocess(c, postprocessor), options))
+    (await query).map(async instance => convertModelToRest(await postprocess(instance, postprocessor), options))
   );
   res.header('Content-Range', `${model.collection.name} 0-${all.length - 1}/${count}`).json(all);
 };
@@ -135,14 +135,18 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   res: Response
 ) => {
   const id = req.params.id;
-  const obj = await model.findOne(matchCondition(id, options));
-  res.json(convertModelToRest(model, await postprocess(obj, postprocessor), options));
+  let query = model.findOne(matchCondition(id, options));
+  if (options.populate) {
+    query = query.populate(options.populate);
+  }
+  const obj = convertModelToRest(await postprocess(await query, postprocessor), options);
+  res.json(obj);
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
-  const obj = await model.findOneAndDelete(matchCondition(id, options));
-  res.json(convertModelToRest(model, obj, options));
+  const instance = await model.findOneAndDelete(matchCondition(id, options));
+  res.json(convertModelToRest(instance, options));
 };
 
 export const postModel = (
@@ -153,7 +157,7 @@ export const postModel = (
   body = await preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
-  res.json(convertModelToRest(model, instance, { primaryKey }));
+  res.json(convertModelToRest(instance, { primaryKey }));
 };
 
 export const putModel = (model: Model<any>, { options }: { options?: MatchAndProcessorOptions }) => async (
@@ -173,18 +177,19 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
       },
       { new: true }
     );
-    res.json(convertModelToRest(model, instance, options));
+    res.json(convertModelToRest(instance, options));
   } catch (error) {
     console.log({ error });
     throw error;
   }
 };
 
-interface PrimaryKeyOptions {
+interface ModelOptions {
   primaryKey?: string;
+  populate?: any;
 }
 
-interface MatchOptions extends PrimaryKeyOptions {
+interface MatchOptions extends ModelOptions {
   match?: string[];
 }
 
@@ -212,14 +217,14 @@ interface RestifyOptions extends MatchOptions {
 export const restifyModel = (
   router: Router,
   model: Model<any>,
-  { primaryKey, requestHandler, methods, match, preprocessor, postprocessor }: RestifyOptions
+  { primaryKey, populate, requestHandler, methods, match, preprocessor, postprocessor }: RestifyOptions
 ) => {
   // List
   if (!methods || methods.list) {
     if (requestHandler) {
-      router.route('/').get(requestHandler, listModel(model, { primaryKey }, postprocessor));
+      router.route('/').get(requestHandler, listModel(model, { primaryKey, populate }, postprocessor));
     } else {
-      router.route('/').get(listModel(model, { primaryKey }, postprocessor));
+      router.route('/').get(listModel(model, { primaryKey, populate }, postprocessor));
     }
   }
 
@@ -235,9 +240,9 @@ export const restifyModel = (
   // Fetch one
   if (!methods || methods.get) {
     if (requestHandler) {
-      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, match }, postprocessor));
+      router.route('/:id').get(requestHandler, getModel(model, { primaryKey, populate, match }, postprocessor));
     } else {
-      router.route('/:id').get(getModel(model, { primaryKey, match }, postprocessor));
+      router.route('/:id').get(getModel(model, { primaryKey, populate, match }, postprocessor));
     }
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "express-mongoose-restify",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "An addition to express and mongoose that creates automatic rest endpoints",
   "main": "main.js",
   "scripts": {
