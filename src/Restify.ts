@@ -12,20 +12,19 @@ const preprocess = async (obj: any, preprocessor?: PreprocessorType) => {
   return obj;
 };
 const postprocess = async (obj: any, postprocessor?: PostprocessorType) => {
-  IGNORE_PROPS_EDIT.forEach(prop => delete obj[prop]);
   if (postprocessor) {
     return await postprocessor(obj);
   }
   return obj;
 };
 
-const convertModelToRest = (model: Model<any>, instance: Document, options?: ModelOptions) => {
+const convertModelToRest = (instance: Document, options?: ModelOptions) => {
   const object = instance.toObject();
   if (options && options.primaryKey) {
-      object.id = object[options.primaryKey];
-      object[options.primaryKey] = undefined;
+    object.id = object[options.primaryKey];
+    object[options.primaryKey] = undefined;
   } else {
-      object.id = object._id;
+    object.id = object._id;
   }
   object._id = undefined;
   object.__v = undefined;
@@ -108,7 +107,7 @@ export const listModel = (model: Model<any>, options?: ModelOptions, postprocess
     query = query.skip(start).limit(end - start);
   }
   const all = await Promise.all(
-    (await query).map(async c => convertModelToRest(model, await postprocess(c, postprocessor), options))
+    (await query).map(async instance => convertModelToRest(await postprocess(instance, postprocessor), options))
   );
   res.header('Content-Range', `${model.collection.name} 0-${all.length - 1}/${count}`).json(all);
 };
@@ -140,14 +139,14 @@ export const getModel = (model: Model<any>, options?: MatchOptions, postprocesso
   if (options.populate) {
     query = query.populate(options.populate);
   }
-  const obj = convertModelToRest(model, await postprocess(await query), options);
+  const obj = convertModelToRest(await postprocess(await query, postprocessor), options);
   res.json(obj);
 };
 
 export const deleteModel = (model: Model<any>, options?: MatchOptions) => async (req: Request, res: Response) => {
   const id = req.params.id;
-  const obj = await model.findOneAndDelete(matchCondition(id, options));
-  res.json(convertModelToRest(model, obj, options));
+  const instance = await model.findOneAndDelete(matchCondition(id, options));
+  res.json(convertModelToRest(instance, options));
 };
 
 export const postModel = (
@@ -158,7 +157,7 @@ export const postModel = (
   body = await preprocess(body, preprocessor);
   const instance = new model(body);
   await instance.save();
-  res.json(convertModelToRest(model, instance, { primaryKey }));
+  res.json(convertModelToRest(instance, { primaryKey }));
 };
 
 export const putModel = (model: Model<any>, { options }: { options?: MatchAndProcessorOptions }) => async (
@@ -178,7 +177,7 @@ export const putModel = (model: Model<any>, { options }: { options?: MatchAndPro
       },
       { new: true }
     );
-    res.json(convertModelToRest(model, instance, options));
+    res.json(convertModelToRest(instance, options));
   } catch (error) {
     console.log({ error });
     throw error;
