@@ -19,7 +19,7 @@ const postprocess = async (obj: any, postprocessor?: PostprocessorType) => {
 };
 
 const convertModelToRest = (instance: Document, options?: ModelOptions) => {
-  const object = instance.toObject();
+  const object = instance.toObject ? instance.toObject() : instance;
   if (options && options.primaryKey) {
     object.id = object[options.primaryKey];
     object[options.primaryKey] = undefined;
