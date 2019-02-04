@@ -1,5 +1,4 @@
 import { Request, Response, Router } from 'express';
-import { RequestHandler } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 export declare const listModel: (model: Model<any>, options?: ModelOptions, postprocessor?: PostprocessorType) => (req: Request, res: Response) => Promise<void>;
 export declare const getModel: (model: Model<any>, options?: MatchOptions, postprocessor?: PostprocessorType) => (req: Request, res: Response) => Promise<void>;
@@ -25,7 +24,7 @@ declare type PreprocessorType = (object: any) => Promise<any>;
 declare type PostprocessorType = (object: any) => Promise<any>;
 interface RestifyOptions extends MatchOptions {
     primaryKey?: string;
-    requestHandler?: RequestHandler;
+    requestHandler?: any;
     preprocessor?: PreprocessorType;
     postprocessor?: PostprocessorType;
     methods?: {

@@ -1,5 +1,4 @@
 import { Request, Response, Router } from 'express';
-import { RequestHandler } from 'express-serve-static-core';
 import { Document, Model, Types } from 'mongoose';
 
 const IGNORE_PROPS_EDIT = ['createdAt', 'updatedAt', 'id', '_id'];
@@ -202,7 +201,7 @@ type PostprocessorType = (object: any) => Promise<any>;
 
 interface RestifyOptions extends MatchOptions {
   primaryKey?: string;
-  requestHandler?: RequestHandler;
+  requestHandler?: any;
   preprocessor?: PreprocessorType;
   postprocessor?: PostprocessorType;
   methods?: {
