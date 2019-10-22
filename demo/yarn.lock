@@ -110,10 +110,12 @@ balanced-match@^1.0.0:
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
-basic-auth@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/basic-auth/-/basic-auth-1.1.0.tgz#45221ee429f7ee1e5035be3f51533f1cdfd29884"
-  integrity sha1-RSIe5Cn37h5QNb4/UVM/HN/SmIQ=
+basic-auth@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/basic-auth/-/basic-auth-2.0.1.tgz#b998279bf47ce38344b4f3cf916d4679bbf51e3a"
+  integrity sha512-NF+epuEdnUYVlGuhaxbbq+dvJttwLnGY+YixlXlME5KpQ5W3CnXA5cVTneY3SPbPDRkcjMbifrwmFYcClgOZeg==
+  dependencies:
+    safe-buffer "5.1.2"
 
 bluebird@3.5.1:
   version "3.5.1"
@@ -343,14 +345,14 @@ etag@~1.8.1:
   integrity sha1-Qa4u62XvpiJorr/qg6x9eSmbCIc=
 
 express-basic-auth@^1.1.5:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/express-basic-auth/-/express-basic-auth-1.1.5.tgz#3a28f6300b5f1ffd8e025193489b520a264941ea"
-  integrity sha512-mDp1yMjZbCzH7Ixp8k20TyYiNgUdEso8XwUglWHbFZwivX32c5pbB24wcGL+feWXLqinJCvGvuuJSqLih+MV/g==
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/express-basic-auth/-/express-basic-auth-1.1.7.tgz#8682dea1023ec9694628f9ab561fb56d17e88741"
+  integrity sha512-gofejPlyXxuRQfbc2pfCBEjFgKUPwICLoEJuC6i2KqBPBszBU7bIKvpEKrsU0oCCFDo2L1YuK/KSG5gVyess+A==
   dependencies:
-    basic-auth "^1.1.0"
+    basic-auth "^2.0.1"
 
 express-mongoose-restify@../:
-  version "1.0.0"
+  version "1.0.2"
   dependencies:
     express "^4.16.4"
     mongoose "^5.3.6"
